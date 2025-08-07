@@ -114,3 +114,4 @@ MIN_NUCLEUS_AREA = 200         # Minimum area for a valid nucleus
 - May require parameter adjustments for different types of microscopy images
 
 ## 📄 License
+GPL-3.0
