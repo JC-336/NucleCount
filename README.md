@@ -38,6 +38,13 @@ Additionally, create two folders named "input" and "output".
 ## 📂 Usage
 **Place your input images in an input folder in the project directory.**
 
+Supported Image Formats
+TIFF (.tiff, .tif)
+JPEG (.jpeg, .jpg)
+PNG (.png)
+
+Note, current version supports immumofluorescent images with nuclei labelled blue. Future releases will be include the ability to detect nuclei labelled with other colors such as green or red and ideally from immunohistochemical images.
+
 To run the script:
 ```bash
 python nuclei_detector.py
