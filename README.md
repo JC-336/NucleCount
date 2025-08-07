@@ -18,7 +18,7 @@ A computer vision-based tool for automated detection and counting of cell nuclei
 ---
 
 ## 📦 Installation Requirements
-## 🐍 Python Compatibility
+### Python Compatibility
 
 This project is compatible with **Python 3.6 and above**.
 
@@ -33,3 +33,15 @@ python --version
 ```bash
 pip install opencv-python numpy pandas matplotlib scikit-image
 ```
+Additionally, create two folders named "input" and "output".
+
+## 📂 Usage
+**Place your input images in an input folder in the project directory.**
+
+To run the script:
+```bash
+python nuclei_detector.py
+```
+Results will be saved to the output folder:
+Visualization images for each processed image
+CSV file with nuclei counts
