@@ -18,6 +18,17 @@ A computer vision-based tool for automated detection and counting of cell nuclei
 ---
 
 ## 📦 Installation Requirements
+## 🐍 Python Compatibility
+
+This project is compatible with **Python 3.6 and above**.
+
+### ✅ Requirements and Dependencies
+
+Before running the project, ensure you have Python 3 installed. You can check your version with:
+
+```bash
+python --version
+```
 
 ```bash
 pip install opencv-python numpy pandas matplotlib scikit-image
