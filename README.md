@@ -49,6 +49,68 @@ To run the script:
 ```bash
 python nuclei_detector.py
 ```
-Results will be saved to the output folder:
+Results will be saved to the output folder: /n
 Visualization images for each processed image
 CSV file with nuclei counts
+
+## ⚙️ How It Works
+### 🔧 Image Preprocessing
+- Reads input image and detects/removes scale bar
+- Converts to grayscale and applies thresholding
+- Performs morphological operations to separate nuclei
+
+### 🔍 Detection Process
+- Uses Hough Circle Transform to detect circular nuclei
+- Employs contour detection to identify oval-shaped nuclei
+- Applies watershed algorithm for separating adjacent nuclei
+
+### 🧪 Classification
+- Validates detected objects based on size and blue staining intensity
+- Merges overlapping small circles into oval shapes
+- Classifies objects as interior or border nuclei
+
+
+### 🎨 Visualization
+- Marks valid circular nuclei in green
+- Marks valid oval nuclei in blue
+- Marks border-touching nuclei in yellow (circles) or orange (ovals)
+- Marks invalid detections in purple
+- Provides count summary and color legend
+
+## 📊 Output Explanation
+### 🖼️ Visual Output
+Each processed image generates a visualization showing:
+
+The original image
+Binary processed image
+Color-coded detection results
+
+### 📄 CSV Output
+The nuclei_counts_circles_ovals.csv file contains:
+
+```bash
+filename: Name of the processed image
+nuclei_count: Count of valid nuclei not touching borders
+border_nuclei_count: Count of nuclei touching image borders
+circles_merged: Number of circles merged into ovals
+ovals_from_circles: Number of ovals created from merged circles
+total_valid: Total count of all detected valid nuclei. Overlapping small circles are counted as 1 nuclei.
+```
+## ⚙️ Parameters
+
+The code includes several configurable parameters:
+```bash
+BOTTOM_REGION = 0.40           # Fraction of image bottom to search for scale bar
+MIN_WIDTH_FRAC = 0.05          # Minimum width fraction for scale bar detection
+BLUE_THRESHOLD = 80            # Percentage threshold for blue content validation
+SMALL_CIRCLE_RADIUS = 18       # Maximum radius for "small" circles
+OVERLAP_THRESHOLD = 0.7        # Threshold for determining circle overlap
+MIN_NUCLEUS_AREA = 200         # Minimum area for a valid nucleus
+```
+
+### ⚠️ Limitations
+- Optimized for histological images with blue-stained nuclei
+- Performance may vary based on image resolution and staining quality
+- May require parameter adjustments for different types of microscopy images
+
+## 📄 License
