@@ -377,7 +377,7 @@ for filename in os.listdir(input_folder):
             cv2.circle(circle_img, (int(c[0]), int(c[1])), int(c[2]), (255,255,0), 2)
 
         # Only keep visualization and saving
-        fig, ax = plt.subplots(1, 3, figsize=(15, 7.5))
+        fig, ax = plt.subplots(1, 3, figsize=(15, 7))
         ax[0].imshow(original_img)
         ax[0].set_title('Original')
         ax[0].axis('off')
@@ -385,7 +385,7 @@ for filename in os.listdir(input_folder):
         ax[1].set_title('Binary')
         ax[1].axis('off')
         ax[2].imshow(circle_img)
-        ax[2].set_title('Detected Shapes')
+        ax[2].set_title(f'Detected Shapes = ({circle_count})')
         ax[2].axis('off')
         plt.tight_layout()
         plt.savefig(os.path.join(output_folder, f"nuclei_circles_ovals_{filename}.png"), dpi=150)
