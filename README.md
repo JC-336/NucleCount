@@ -1,6 +1,6 @@
 # Nuclei Detection and Counting Tool
 
-A computer vision-based tool for automated detection and counting of cell nuclei in microscopy images. This tool is designed to identify both circular and oval-shaped nuclei, handle overlapping structures, and distinguish between complete nuclei and those touching image borders.
+A computer vision-based tool for automated detection and counting of cell nuclei in microscopy images. This tool is designed to identify both circular and oval-shaped nuclei, handle overlapping structures, and distinguish between complete nuclei and those touching image borders. Currently, stable but is a work-in-progress and is only currently able to detect 20X images. Use at your discretion.
 
 ---
 
