@@ -5,6 +5,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from skimage import io
 import math
+from IPython.display import display
 
 # Constants for the detection process
 BOTTOM_REGION = 0.40
@@ -242,12 +243,16 @@ os.makedirs(output_folder, exist_ok=True)
 image_extensions = ('.tiff', '.tif', '.jpeg', '.jpg', '.png')
 results = []
 
+excel_results = []  # Initialize results list before the loop
 for filename in os.listdir(input_folder):
     if not filename.lower().endswith(image_extensions):
         continue
 
     path = os.path.join(input_folder, filename)
     img_rgb = read_rgb(path)
+    # If image has 4 channels (RGBA), convert to 3 channels (RGB)
+    if img_rgb.shape[2] == 4:
+        img_rgb = cv2.cvtColor(img_rgb, cv2.COLOR_RGBA2RGB)
     original_img = img_rgb.copy()  # Keep a clean copy
 
     scale_bar_mask = detect_scale_bar(img_rgb)
@@ -260,7 +265,7 @@ for filename in os.listdir(input_folder):
     binary[scale_bar_mask] = 0
 
     kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
-    binary = cv2.morphologyEx(binary, cv2.MORPH_OPEN, kernel, iterations=-10000)
+    binary = cv2.morphologyEx(binary, cv2.MORPH_OPEN, kernel, iterations=-100000)
 
     # Distance Transform and Watershed
     dist_transform = cv2.distanceTransform(binary, cv2.DIST_L2, 5)
@@ -274,7 +279,7 @@ for filename in os.listdir(input_folder):
     # Highlight watershed boundaries (optional visualization)
     img_rgb[markers == -1] = [255, 0, 0]
 
-    circles = cv2.HoughCircles(binary, cv2.HOUGH_GRADIENT, dp=1.7, minDist=15, param1=30, param2=15, minRadius=12, maxRadius=25)
+    circles = cv2.HoughCircles(binary, cv2.HOUGH_GRADIENT, dp=1.6, minDist=10, param1=30, param2=15, minRadius=7, maxRadius=30)
     circle_img = original_img.copy()
     merged_circles = []
     border_circles = []
@@ -300,135 +305,96 @@ for filename in os.listdir(input_folder):
                 valid_non_border_circles.append(c)
             else:
                 invalid_non_border_circles.append(c)
-        
-        # Convert overlapping small circles to ovals
-        mixed_shapes, circles_merged = convert_overlapping_circles_to_ovals(valid_non_border_circles, img_rgb.shape)
-        
+
+        # --- New logic: Replace overlapping valid green circles with a larger circle ---
+        def circles_overlap(c1, c2):
+            dist = np.linalg.norm(np.array([c1[0], c1[1]]) - np.array([c2[0], c2[1]]))
+            return dist < (c1[2] + c2[2])
+
+        def merge_two_circles(c1, c2):
+            # Center is average, radius is enough to cover both
+            center_x = (c1[0] + c2[0]) / 2
+            center_y = (c1[1] + c2[1]) / 2
+            dist = np.linalg.norm(np.array([c1[0], c1[1]]) - np.array([c2[0], c2[1]]))
+            new_radius = dist / 2 + max(c1[2], c2[2])
+            return [center_x, center_y, new_radius]
+
+        # Only process valid non-border circles
+        merged_valid_circles = valid_non_border_circles.copy()
+        changed = True
+        while changed:
+            changed = False
+            n = len(merged_valid_circles)
+            to_remove = set()
+            for i in range(n):
+                for j in range(i+1, n):
+                    if circles_overlap(merged_valid_circles[i], merged_valid_circles[j]):
+                        # Merge and mark for removal
+                        new_circle = merge_two_circles(merged_valid_circles[i], merged_valid_circles[j])
+                        to_remove.update([i, j])
+                        merged_valid_circles.append(new_circle)
+                        changed = True
+                        break
+                if changed:
+                    break
+            if changed:
+                # Remove merged circles
+                merged_valid_circles = [c for idx, c in enumerate(merged_valid_circles) if idx not in to_remove]
+
+        # Convert overlapping small circles to ovals (now using merged circles)
+        mixed_shapes, circles_merged = convert_overlapping_circles_to_ovals(merged_valid_circles, img_rgb.shape)
+
+        # Count green circles after merging (oval count removed)
+
+        circle_count = sum(
+
+            1 for shape in mixed_shapes if (
+
+                (isinstance(shape, (list, tuple)) and len(shape) == 3) or
+
+                (isinstance(shape, (list, tuple)) and len(shape) >= 4 and shape[-1] == 0)
+
+            )
+
+        )
+
+        excel_results.append({'filename': filename, '# of nuclei': circle_count})
+
         # Draw shapes - could be circles or ovals
         for shape in mixed_shapes:
-            if shape[-1] == 0:  # Circle
+            if isinstance(shape, (list, tuple)) and len(shape) >= 4 and shape[-1] == 0:
                 x, y, r, _ = shape
                 cv2.circle(circle_img, (int(x), int(y)), int(r), (0,255,0), 2)
-            else:  # Oval
+            elif isinstance(shape, (list, tuple)) and len(shape) == 6 and shape[-1] == 1:
                 x, y, width, height, angle, _ = shape
-                # Convert to OpenCV ellipse format
                 center = (int(x), int(y))
                 axes = (int(width/2), int(height/2))
                 cv2.ellipse(circle_img, center, axes, angle, 0, 360, (0,255,0), 2)
-                
-        # Draw border circles in yellow
+            elif isinstance(shape, (list, tuple)) and len(shape) == 3:
+                x, y, r = shape
+                cv2.circle(circle_img, (int(x), int(y)), int(r), (0,255,0), 2)
         for c in border_circles:
             cv2.circle(circle_img, (int(c[0]), int(c[1])), int(c[2]), (255,255,0), 2)
 
-    # Counts
-    # Count circles and ovals separately
-    circle_count = sum(1 for shape in mixed_shapes if shape[-1] == 0)
-    oval_from_circles_count = sum(1 for shape in mixed_shapes if shape[-1] == 1)
-    
-    # Total valid shapes = circles + ovals (including those created from merged circles)
-    valid_shape_count = circle_count + oval_from_circles_count
-    
-    invalid_circle_count = len(invalid_non_border_circles)  # Count of invalid circles
-    border_circle_count = len(border_circles)
+        # Only keep visualization and saving
+        fig, ax = plt.subplots(1, 3, figsize=(15, 7.5))
+        ax[0].imshow(original_img)
+        ax[0].set_title('Original')
+        ax[0].axis('off')
+        ax[1].imshow(binary, cmap='gray')
+        ax[1].set_title('Binary')
+        ax[1].axis('off')
+        ax[2].imshow(circle_img)
+        ax[2].set_title('Detected Shapes')
+        ax[2].axis('off')
+        plt.tight_layout()
+        plt.savefig(os.path.join(output_folder, f"nuclei_circles_ovals_{filename}.png"), dpi=150)
+        plt.close(fig)
 
-    contours, _ = cv2.findContours(binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    detected_oval_count = 0
-    border_oval_count = 0
-    
-    # Use all circle centers to avoid duplicate detection between circles and ovals
-    # Need to extract centers from mixed_shapes
-    shape_centers = []
-    for shape in mixed_shapes:
-        if shape[-1] == 0:  # Circle
-            shape_centers.append((int(shape[0]), int(shape[1])))
-        else:  # Oval
-            shape_centers.append((int(shape[0]), int(shape[1])))
-    
-    shape_centers.extend([(int(c[0]), int(c[1])) for c in border_circles])
-
-    for cnt in contours:
-        if len(cnt) >= 5:
-            ellipse = cv2.fitEllipse(cnt)
-            (x, y), (MA, ma), angle = ellipse
-            aspect_ratio = max(MA, ma) / min(MA, ma) if min(MA, ma) > 0 else 0
-            area = np.pi * (MA/2) * (ma/2)
-
-            if area > MIN_NUCLEUS_AREA and aspect_ratio > 0.2:
-                center = (int(x), int(y))
-                
-                if not any(np.linalg.norm(np.array(center) - np.array(cc)) < 0.6 * max(MA, ma) for cc in shape_centers):
-                    # Check if ellipse touches the border
-                    touches_border = (x - MA/2 <= 0 or x + MA/2 >= img_rgb.shape[1] or 
-                                     y - ma/2 <= 0 or y + ma/2 >= img_rgb.shape[0])
-                    
-                    if touches_border:
-                        cv2.ellipse(circle_img, ellipse, (255,128,0), 2)  # Orange for border ovals
-                        border_oval_count += 1
-                    else:
-                        # For ovals, also check blue content
-                        # Create a temporary mask for the ellipse
-                        temp_mask = np.zeros(img_rgb.shape[:2], dtype=np.uint8)
-                        cv2.ellipse(temp_mask, ellipse, 255, -1)
-                        
-                        total_pixels = np.sum(temp_mask > 0)
-                        blue_pixels = np.sum((temp_mask > 0) & (binary > 0))
-                        blue_percentage = (blue_pixels / total_pixels) * 100 if total_pixels > 0 else 0
-                        
-                        if blue_percentage > BLUE_THRESHOLD:
-                            cv2.ellipse(circle_img, ellipse, (0,0,255), 2)  # Blue for valid ovals
-                            detected_oval_count += 1
-                        else:
-                            cv2.ellipse(circle_img, ellipse, (128,0,128), 2)  # Purple for invalid ovals
-
-    # Calculate total count including ovals created from merged circles
-    total_count = circle_count + oval_from_circles_count + detected_oval_count
-    total_border_count = border_circle_count + border_oval_count
-    
-    results.append({
-        'filename': filename, 
-        'nuclei_count': total_count,
-        'border_nuclei_count': total_border_count,
-        'circles_merged': circles_merged,
-        'ovals_from_circles': oval_from_circles_count,
-        'total_valid': total_count + total_border_count
-    })
-
-    # Create a legend with information about merged circles -> ovals
-    legend_img = np.ones((120, circle_img.shape[1], 3), dtype=np.uint8) * 255
-    cv2.putText(legend_img, f"Green: Valid circles ({circle_count}) & ovals from merged circles ({oval_from_circles_count})", 
-                (10, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,255,0), 1)
-    cv2.putText(legend_img, f"Yellow: Border circles ({border_circle_count})", 
-                (10, 40), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255,255,0), 1)
-    cv2.putText(legend_img, f"Blue: Detected ovals ({detected_oval_count})", 
-                (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,0,255), 1)
-    cv2.putText(legend_img, f"Orange: Border ovals ({border_oval_count})", 
-                (10, 80), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255,128,0), 1)
-    cv2.putText(legend_img, f"Purple: Invalid ovals", 
-                (10, 100), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (128,0,128), 1)
-    cv2.putText(legend_img, f"Circles merged into ovals: {circles_merged}", 
-                (400, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,0,0), 1)
-    
-    # Combine with the main visualization
-    combined_img = np.vstack([circle_img, legend_img])
-
-    fig, ax = plt.subplots(1, 3, figsize=(15, 5))
-    ax[0].imshow(original_img)
-    ax[0].set_title('Original')
-    ax[0].axis('off')
-    
-    ax[1].imshow(binary, cmap='gray')
-    ax[1].set_title('Binary')
-    ax[1].axis('off')
-    
-    ax[2].imshow(circle_img)
-    ax[2].set_title(f'Valid: {total_count+circles_merged} (Interior), {total_border_count} (Border)')
-    ax[2].axis('off')
-    
-    plt.tight_layout()
-    plt.savefig(os.path.join(output_folder, f"nuclei_circles_ovals_{filename}.png"), dpi=150)
-    plt.close(fig)
-    
-
-pd.DataFrame(results).to_csv(os.path.join(output_folder, 'nuclei_counts_circles_ovals.csv'), index=False)
-
-print(pd.DataFrame(results))
+# After processing all images, output Excel file
+import pandas as pd
+import openpyxl
+if len(excel_results) > 0:
+    df_excel = pd.DataFrame(excel_results)
+    df_excel.to_excel(os.path.join(output_folder, 'nuclei_green_circle_counts.xlsx'), index=False)
+    display(df_excel)
