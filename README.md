@@ -1,6 +1,6 @@
 # Nuclei Detection and Counting Tool
 
-A computer vision-based tool for automated detection and counting of cell nuclei in microscopy images. This tool is designed to identify both circular and oval-shaped nuclei, handle overlapping structures, and distinguish between complete nuclei and those touching image borders. Currently, stable but is a work-in-progress and is only currently able to detect 20X images. Use at your own discretion.
+A computer vision-based tool for automated detection and counting of cell nuclei in microscopy images. This tool is designed to identify both circular and oval-shaped nuclei, handle overlapping structures, and distinguish between complete nuclei and those touching image borders. Currently stable, but still a work-in-progress. It currently supports only 20X magnification images.
 
 ---
 
@@ -24,8 +24,7 @@ This project is compatible with **Python 3.6 and above**.
 
 ### ✅ Requirements and Dependencies
 
-Before running the project, ensure you have Python 3 installed. You can check your version with:
-
+Before running the project, ensure Python 3 is installed.
 ```bash
 python --version
 ```
@@ -43,13 +42,12 @@ TIFF (.tiff, .tif)
 JPEG (.jpeg, .jpg)
 PNG (.png)
 
-Note, current version supports immumofluorescent images with nuclei labelled blue. Future releases will be include the ability to detect nuclei labelled with other colors such as green or red and ideally from immunohistochemical images.
-
+Note: the current version supports immunofluorescent images with nuclei labeled in blue.
 To run the script:
 ```bash
 python nuclei_detector.py
 ```
-Results will be saved to the output folder: /n
+Results will be saved to the output folder:
 Visualization images for each processed image
 CSV file with nuclei counts
 
