@@ -83,17 +83,6 @@ The original image
 Binary processed image
 Color-coded detection results
 
-### 📄 CSV Output
-The nuclei_counts_circles_ovals.csv file contains:
-
-```bash
-filename: Name of the processed image
-nuclei_count: Count of valid nuclei not touching borders
-border_nuclei_count: Count of nuclei touching image borders
-circles_merged: Number of circles merged into ovals
-ovals_from_circles: Number of ovals created from merged circles
-total_valid: Total count of all detected valid nuclei. Overlapping small circles are counted as 1 nuclei.
-```
 ## ⚙️ Parameters
 
 The code includes several configurable parameters:
