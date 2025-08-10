@@ -10,7 +10,6 @@ A computer vision-based tool for automated detection and counting of cell nuclei
 - **Shape classification**: Identifies both circular and oval-shaped nuclei
 - **Overlap handling**: Merges overlapping small circles into ovals
 - **Border detection**: Differentiates between complete nuclei and those touching image borders
-- **Blue content verification**: Validates potential nuclei based on staining intensity
 - **Scale bar removal**: Automatically excludes scale bars from analysis
 - **Comprehensive visualization**: Color-coded results with detailed legend
 - **Data export**: Results compiled into CSV for further analysis
